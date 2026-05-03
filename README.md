@@ -5,7 +5,7 @@
 | Assignment nr. |    Done?     |
 |----------------|:------------:|
 | 1              |    `yes`     |
-| 2              |  `not yet`   |
+| 2              |    `yes`     |
 | 3              |  `not yet`   |
 
 
