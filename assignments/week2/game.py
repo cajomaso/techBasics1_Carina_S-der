@@ -1,3 +1,4 @@
+# I will update my first site ReadMe every week to be transparent about AI and sources used.
 import time,sys
 
 def typingPrint(text):
