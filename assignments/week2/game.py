@@ -1,45 +1,46 @@
 # I will update my first site ReadMe every week to be transparent about AI and sources used.
-import time,sys
+import time, sys
+
 
 def typingPrint(text):
-  for character in text:
-    sys.stdout.write(character)
-    sys.stdout.flush()
-    time.sleep(0.05)
+    for character in text:
+        sys.stdout.write(character)
+        sys.stdout.flush()
+        time.sleep(0.05)
 
-#text
-line1= "It's a new morning and you wake up..."
-line2= "You think to yourself: What season was it again?"
-line3= "Oh, it's"
-line4= "that's right!"
-line5= "Oops, that did not work. Try to write spring, summer, autumn or winter without any spaces!"
-line6= "The flowers are really starting to bloom."
-line7= "The sun really is scorching hot..."
-line8= "The leafs are already falling and the pumpkins are growing more and more... time sure flies by."
-line9= "Yay, my snowman is still standing."
+
+# text
+line1 = "It's a new morning and you wake up..."
+line2 = "You think to yourself: What season was it again?"
+line3 = "Oh, it's"
+line4 = "that's right!"
+line5 = "Oops, that did not work. Try to write spring, summer, autumn or winter without any spaces!"
+line6 = "The flowers are really starting to bloom."
+line7 = "The sun really is scorching hot..."
+line8 = "The leafs are already falling and the pumpkins are growing more and more... time sure flies by."
+line9 = "Yay, my snowman is still standing."
 
 typingPrint(line1)
 
 time.sleep(1)
 
 while True:
-        season = input(line2).lower()
-        time.sleep(1)
-        season=str(season)
+    season = input(line2).lower()
+    time.sleep(1)
+    season = str(season)
+
+    if season == "spring" or season == "summer" or season == "autumn" or season == "winter":
+        print(line3, season, line4)
+        time.sleep(2)
+        typingPrint("Look out the window you can see it!")
+        time.sleep(2)
+        break
 
 
-        if season =="spring"or season=="summer"or season=="autumn" or season=="winter":
-            print(line3, season, line4)
-            time.sleep(2)
-            typingPrint("Look out the window you can see it!")
-            time.sleep(2)
-            break
+    elif season != "spring" or "summer" or "autumn" or "winter":
+        typingPrint(line5)
 
-
-        elif season != "spring"or"summer"or"autumn" or "winter":
-            typingPrint(line5)
-
-if season=="spring":
+if season == "spring":
     print(fr'''       
          _( )_        
         (_(o)_)       
@@ -56,7 +57,7 @@ if season=="spring":
       |    |    |     ''')
     typingPrint(line6)
 
-elif season=="summer":
+elif season == "summer":
     print('''   
           NUUUUU}}}}}}}}}}}}}}   
            S}UUUU}}}}∙∙∙∙∙∙∙∙∙
@@ -80,7 +81,7 @@ SUNSUN}}}N∙∞∞∙∙UU}}}∙NN∙∙∙∙∙∙∙
 ''')
     print(line7)
 
-elif season=="autumn":
+elif season == "autumn":
     print('''                           
                         
                         ▄█▀     
@@ -126,8 +127,6 @@ else:
 °   └        .        ┘         
     └                 ┘       ''')
     typingPrint(line9)
-
-
 
 while True:
 
@@ -182,7 +181,7 @@ while True:
 while True:
     walk = input("Should I go for a walk then?").lower()
     time.sleep(1)
-    walk=str(walk)
+    walk = str(walk)
 
     if walk == "yes" or walk == "no":
 
@@ -197,7 +196,7 @@ while True:
                 typingPrint("Then lets go get those 10000 steps.")
                 break
 
-            elif temperature <=15:
+            elif temperature <= 15:
                 typingPrint("It's chilly I'd rather stay home.")
                 break
 
