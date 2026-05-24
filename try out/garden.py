@@ -1,15 +1,13 @@
 import sys
-#with "c:" I will mark my comments
-# c: Already impressed what gemini did with my instructions BUT these are my observations:
-#it did literally (almost) only what I told it to do. (Which is usually good)
-# Now I am missing:
-#A Welcome message that explains the player how he can play. For example: Choose your action by typing the number!
-#(A message that tells the player if something does not work) I correct myself after reading the code: They exist but they need a time puffer.
-#Longer showing time (of the sleeping message) for ALL messages -> time.sleep
-#The use of the axt to get rid of planted plants so the player can plant new ones as a choice next to harvest
-#I think it would be fun if the harvest gets rotten (only on the tree /bush= after 3 days of sleeping without harvesting. If the harvest is rotten offer the option to pick them and throw them away.
+import time # c: Aha, I see u longer showing messages
 
-# --- Your exact ASCII Art definitions --- c: made the art myself
+# c: The shed also shows items that are not there, I want to change that. But still give directions to drop an item. First ask for input if player wants to drop item, then let him choose. He cannot drop money.
+# c: only one apple is a bit weak, make it 3, also make it 5 berries. You can add these to the dictionaries as "fruit": 3 or "fruit": 5 and only make them available if growth == 3
+# c: do we still need a, b, c, d and e for printing? Just put a, b and c and add the s_lines and w_lines. Maybe similar to this: s_lines + a + b+ c+ w_lines
+
+# c: I sometimes write my comments like the above so I can use them as a prompt.
+
+# --- Your exact ASCII Art definitions --- # c: diy
 shed = ('''
 .oOo.oOo.oOo.oOo.oOo.oOo.oOo. \n
                               \n
@@ -340,13 +338,20 @@ inventory = [
     {"name": "apple", "type": "harvest", "count": 0, "price": 5},
     {"name": "berry", "type": "harvest", "count": 0, "price": 1},
     {"name": "flower", "type": "harvest", "count": 0, "price": 8},
-    {"name": "money", "type": "currency", "count": 40}]  # Start with 40 to buy things
+    {"name": "money", "type": "currency", "count": 40}]
 
-# Track plot states. Options: None (ground), "shoveled", or a dynamic plant dict
-garden_plots = [None, None, None]
+# Track plot states. None (ground), "shoveled", or a dynamic plant dict
+# Plants now track "days_at_max" to check for rotting mechanics
+garden_plots = [None, None, None] # c: a simple solution for defining the three changeable spots I sadly did not think of myself.
 
 
 # --- Helper Functions ---
+def msg(text, delay=1.8): # c: perfect delay now
+    """Prints a message and pauses briefly so the player has time to read it."""
+    print(f"\n>> {text}")
+    time.sleep(delay)
+
+
 def get_inv_count():
     return sum(1 for item in inventory if item["type"] != "currency" and item["count"] > 0)
 
@@ -359,17 +364,14 @@ def get_item(source_list, name):
 
 
 def clean_lines(lines_list):
-    # Cleans trailing carriage returns and standardizes width <- c:before was very ugly, now very clean
     return [line.replace('\r', '').ljust(30) for line in lines_list if line.strip() or len(line) > 0][:21]
 
 
-# Your signature print function, modified safely to load current garden state
+# Custom signature layout builder function
 def show_garden():
-    # Setup standard assets
     s_lines = clean_lines(shed_lines)
     w_lines = clean_lines(well_lines)
 
-    # Dynamically select what goes into the 3 middle spots
     middle_plots = []
     for plot in garden_plots:
         if plot is None:
@@ -380,21 +382,19 @@ def show_garden():
             g = plot["growth"]
             n = plot["name"]
             if n == "appletree":
-                art = appletree1_lines if g == 1 else appletree2_lines if g == 2 else appletree3_lines #c:did not now u could do if else in one line
+                art = appletree1_lines if g == 1 else appletree2_lines if g == 2 else appletree3_lines
             elif n == "berrybush":
                 art = berrybush1_lines if g == 1 else berrybush2_lines if g == 2 else berrybush3_lines
             elif n == "flowerseed":
                 art = flower1_lines if g == 1 else flower2_lines if g == 2 else flower3_lines
             middle_plots.append(clean_lines(art))
 
-    # Reassigning variable names to exactly match your requested zip format!
-    # c:wanted gemini to keep the strategy I understood, gemini listened. But could have reduced shed and well since they don't change.
     berrybush2_lines_live = middle_plots[0]
     appletree3_lines_live = middle_plots[1]
     flower2_lines_live = middle_plots[2]
 
     print("\n" + "=" * 150)
-    for a, b, c, d, e in zip(s_lines, berrybush2_lines_live, appletree3_lines_live, flower2_lines_live, w_lines):
+    for a, b, c, d, e in zip(s_lines, berrybush2_lines_live, appletree3_lines_live, flower2_lines_live, w_lines): # c: forgot to prompt about this
         print(f"{a}{b}{c}{d}{e}")
     print("=" * 150)
     print(f" Wallet: {get_item(inventory, 'money')['count']} Money | Inventory Spaces: {get_inv_count()}/5")
@@ -403,8 +403,8 @@ def show_garden():
 # --- Location Routines ---
 def go_shed():
     while True:
-        print("\n--- SHED ---")
-        for i, item in enumerate(shed_storage): #c: aha, enumerate keeps the +1 away and the list is created
+        print("\n--- SHED STORAGE ---")
+        for i, item in enumerate(shed_storage):
             extra = f" (Uses: {item['use']})" if "use" in item else ""
             print(f"{i + 1}. {item['name'].capitalize()} [Qty: {item['count']}{extra}]")
         print("B. Back")
@@ -412,29 +412,31 @@ def go_shed():
         choice = input("Pick an item number or 'B' to go back: ").strip().lower()
         if choice == 'b': break
 
-        if choice.isdigit() and 1 <= int(choice) <= len(shed_storage): #c:seeing if input number is correct
+        if choice.isdigit() and 1 <= int(choice) <= len(shed_storage):
             shed_item = shed_storage[int(choice) - 1]
             inv_item = get_item(inventory, shed_item["name"])
             act = input(f"Do you want to (P)ick up or (D)rop off {shed_item['name']}?: ").strip().lower()
 
             if act == 'p':
                 if shed_item["count"] <= 0:
-                    print("Shed is empty of this item!")
+                    msg("Shed is empty of this item!")
                 elif get_inv_count() >= 5 and inv_item["count"] == 0:
-                    print("Inventory full! drop something off first.")
+                    msg("Inventory full! Drop something off first.")
                 else:
                     shed_item["count"] -= 1
                     inv_item["count"] += 1
                     if "use" in shed_item: inv_item["use"] = shed_item["use"]
-                    print(f"Picked up {shed_item['name']}.")
+                    msg(f"Picked up {shed_item['name']}.")
             elif act == 'd':
                 if inv_item["count"] <= 0:
-                    print("You don't have this item to drop off!")
+                    msg("You don't have this item to drop off!")
                 else:
                     inv_item["count"] -= 1
                     shed_item["count"] += 1
                     if "use" in inv_item: shed_item["use"] = inv_item["use"]
-                    print(f"Stored {inv_item['name']} in the shed.")
+                    msg(f"Stored {inv_item['name']} in the shed.")
+        else:
+            msg("Invalid number choice.")
 
 
 def go_garden():
@@ -446,7 +448,9 @@ def go_garden():
             if plot == "shoveled":
                 status = "Shoveled Dirt"
             elif isinstance(plot, dict):
-                status = f"{plot['name'].capitalize()} (Growth: {plot['growth']}/3, {'Watered' if plot['watered'] else 'Dry'})"
+                condition = "ROTTEN!" if plot.get("rotten") else f"Growth: {plot['growth']}/3"
+                water_status = 'Watered' if plot['watered'] else 'Dry'
+                status = f"{plot['name'].capitalize()} ({condition}, {water_status})"
             print(f"{i + 1}. Plot {i + 1}: {status}")
         print("B. Back")
 
@@ -457,77 +461,106 @@ def go_garden():
             idx = int(choice) - 1
             plot = garden_plots[idx]
 
-            print("\nActions: 1: Shovel | 2: Plant Seed | 3: Water | 4: Harvest")
+            print("\nActions: 1: Shovel | 2: Plant Seed | 3: Water | 4: Harvest | 5: Axe it down")
             act = input("Action: ").strip()
 
+            # 1. SHOVEL
             if act == '1':
                 if get_item(inventory, "shovel")["count"] <= 0:
-                    print("Need a shovel!")
+                    msg("Need a shovel!")
                 elif plot is not None:
-                    print("Already worked ground!")
+                    msg("Already worked ground!")
                 else:
                     garden_plots[idx] = "shoveled"
-                    print("Shoveled!")
+                    msg("Shoveled!")
+
+            # 2. PLANT
             elif act == '2':
                 if plot != "shoveled":
-                    print("Shovel it first!")
+                    msg("Shovel it first!")
                 else:
                     seeds = [s for s in inventory if s["type"] == "seed" and s["count"] > 0]
                     if not seeds:
-                        print("No seeds in inventory!")
+                        msg("No seeds in inventory!")
                     else:
                         for s_idx, s in enumerate(seeds): print(f"{s_idx + 1}. {s['name']}")
                         s_choice = input("Pick a seed: ").strip()
                         if s_choice.isdigit() and 1 <= int(s_choice) <= len(seeds):
                             seed = seeds[int(s_choice) - 1]
                             seed["count"] -= 1
-                            garden_plots[idx] = {"name": seed["name"], "growth": 1, "watered": False}
-                            print(f"Planted {seed['name']}!")
+                            garden_plots[idx] = {"name": seed["name"], "growth": 1, "watered": False, "days_at_max": 0,
+                                                 "rotten": False}
+                            msg(f"Planted {seed['name']}!")
+
+            # 3. WATER
             elif act == '3':
                 can = get_item(inventory, "watering can")
                 if can["count"] <= 0:
-                    print("Need watering can!")
+                    msg("Need a watering can!")
                 elif can["use"] <= 0:
-                    print("Can is empty!")
+                    msg("Can is empty! Refill at the well.")
                 elif not isinstance(plot, dict):
-                    print("Nothing here to water!")
+                    msg("Nothing here to water!")
                 elif plot["watered"]:
-                    print("Already watered!")
+                    msg("Already watered today!")
                 else:
                     can["use"] -= 1
                     plot["watered"] = True
-                    print("Watered!")
+                    msg("Watered!")
+
+            # 4. HARVEST / CLEAN UP ROTTEN
             elif act == '4':
                 if not isinstance(plot, dict):
-                    print("Nothing to harvest here.")
+                    msg("Nothing here to harvest.")
+                elif plot.get("rotten"):
+                    # Choice to clean up rotten parts
+                    clean = input("The crop is rotten! Throw it away to clear the plot? (y/n): ").strip().lower()
+                    if clean == 'y':
+                        garden_plots[idx] = None
+                        msg("Threw away the rotten crop. The ground is clear again.")
                 elif plot["growth"] < 3:
-                    print("Not ready for harvesting.")
+                    msg("The plant isn't ready to harvest yet.")
                 else:
                     p_name = plot["name"]
                     yield_name = "apple" if p_name == "appletree" else "berry" if p_name == "berrybush" else "flower"
                     if p_name == "appletree" and get_item(inventory, "axt")["count"] <= 0:
-                        print("Need an axt to cut down trees!")
+                        msg("Need an axt to harvest/cut down trees!")
                     else:
-                        get_item(inventory, yield_name)["count"] += 1 #c:there needs to be an option if inventory is full, also this does not work. Axt needs to be a separate choice.
+                        get_item(inventory, yield_name)["count"] += 1
                         garden_plots[idx] = None
-                        print(f"Harvested {yield_name}!")
+                        msg(f"Harvested a fresh {yield_name}!")
+
+            # 5. AXE CLEAN (Get rid of any plant at any time)
+            elif act == '5':
+                if get_item(inventory, "axt")["count"] <= 0:
+                    msg("You need an axt in your inventory to clear plants!")
+                elif not isinstance(plot, dict):
+                    msg("There is no plant here to clear.")
+                else:
+                    confirm = input(
+                        f"Are you sure you want to chop down the {plot['name']}? You won't yield anything. (y/n): ").strip().lower()
+                    if confirm == 'y':
+                        garden_plots[idx] = None
+                        msg("Chop! The plant was removed and the plot is reset.")
+        else:
+            msg("Invalid plot selection.")
 
 
 def go_well():
     can = get_item(inventory, "watering can")
     if can["count"] <= 0:
-        print("\nYou aren't carrying a watering can.")
+        msg("You aren't carrying a watering can.")
     else:
         print(f"\nCan usage: [{can['use']}/4]")
         if input("Refill can? (y/n): ").strip().lower() == 'y':
             can["use"] = 4
-            print("Refilled!")
+            msg("Refilled watering can!")
 
 
 def go_shop():
     wallet = get_item(inventory, "money")
     while True:
-        print(f"\n--- SHOP (Wallet: {wallet['count']}) ---")
+        print(f"\n--- SHOP (Wallet: {wallet['count']} Money) ---")
         print("1. Buy Seeds\n2. Sell Harvest\nB. Back")
         choice = input("Option: ").strip().lower()
         if choice == 'b': break
@@ -535,29 +568,29 @@ def go_shop():
         if choice == '1':
             seeds = [s for s in shop if s["type"] == "seed"]
             for i, s in enumerate(seeds):
-                print(f"{i + 1}. {s['name']} (${s['price']}) [Stock: {s['count']}]")
+                print(f"{i + 1}. {s['name'].capitalize()} (${s['price']}) [Stock: {s['count']}]")
             idx = input("Buy seed number: ").strip()
             if idx.isdigit() and 1 <= int(idx) <= len(seeds):
                 s_item = seeds[int(idx) - 1]
                 inv_item = get_item(inventory, s_item["name"])
                 if s_item["count"] <= 0:
-                    print("Out of stock!")
+                    msg("Out of stock!")
                 elif wallet["count"] < s_item["price"]:
-                    print("No money!")
+                    msg("Not enough money!")
                 elif get_inv_count() >= 5 and inv_item["count"] == 0:
-                    print("Inventory full!")
+                    msg("Inventory full!")
                 else:
                     wallet["count"] -= s_item["price"]
                     s_item["count"] -= 1
                     inv_item["count"] += 1
-                    print("Purchased!")
+                    msg(f"Purchased 1 {s_item['name']}!")
         elif choice == '2':
             harvests = [h for h in inventory if h["type"] == "harvest" and h["count"] > 0]
             if not harvests:
-                print("Nothing to sell.")
+                msg("Nothing to sell.")
             else:
                 for i, h in enumerate(harvests):
-                    print(f"{i + 1}. {h['name']} x{h['count']} (${h['price']} each)")
+                    print(f"{i + 1}. {h['name'].capitalize()} x{h['count']} (${h['price']} each)")
                 idx = input("Sell number: ").strip()
                 if idx.isdigit() and 1 <= int(idx) <= len(harvests):
                     h_item = harvests[int(idx) - 1]
@@ -565,8 +598,9 @@ def go_shop():
                     if qty.isdigit() and 1 <= int(qty) <= h_item["count"]:
                         amt = int(qty)
                         h_item["count"] -= amt
-                        wallet["count"] += amt * h_item["price"]
-                        print("Sold!")
+                        earnings = amt * h_item["price"]
+                        wallet["count"] += earnings
+                        msg(f"Sold {amt} {h_item['name']}(s) for {earnings} Money!")
 
 
 def look_inventory():
@@ -582,20 +616,44 @@ def look_inventory():
 
 
 def sleep():
-    print("\nSleeping... Zzz...")
+    print("\n*Yawn* Going to bed... ")
+    msg("Sleeping... Zzz...", delay=2.5)  # Extended sleep presentation time
+
     for plot in garden_plots:
-        if isinstance(plot, dict) and plot["watered"]:
-            if plot["growth"] < 3: plot["growth"] += 1
-            plot["watered"] = False
-    print("Morning! Plants grew!")
+        if isinstance(plot, dict):
+            # Rotting logic
+            if plot["growth"] == 3:
+                plot["days_at_max"] += 1
+                if plot["days_at_max"] >= 3:
+                    plot["rotten"] = True
+
+            # Growth logic
+            if plot["watered"]:
+                if plot["growth"] < 3:
+                    plot["growth"] += 1
+                plot["watered"] = False  # Ground dries up
+
+    msg("Good morning! A brand new day has arrived.")
 
 
 # --- Main Engine Loop ---
 def main():
+    print("\n" + "=" * 60)
+    print("      WELCOME TO (MY FUTURE AS A PERSON IN PENSION) GARDENING!")
+    print("=" * 60)
+    print("How to play: ")
+    print("- Interact with your world by typing the listed option number.")
+    print("- To progress, go to the SHED to grab tools (Shovel, Can, Axe).")
+    print("- Buy seeds from the SHOP and look in your INVENTORY to manage space.")
+    print("- Shovel ground first, then plant, water, and sleep to watch it grow!")
+    print("- Warning: Fully grown crops rot if left unharvested for 3 days!")
+    print("=" * 60)
+    input("Press Enter to begin your journey...")
+
     while True:
         show_garden()
-        print("\nMENU: 1: Shed | 2: Garden | 3: Well | 4: Shop | 5: Inventory | 6: Sleep | Q: Quit")
-        choice = input("Choice: ").strip().lower()
+        print("\nMAIN MENU: 1: Shed | 2: Garden | 3: Well | 4: Shop | 5: Inventory | 6: Sleep | Q: Quit")
+        choice = input("Where do you want to go?: ").strip().lower()
         if choice == '1':
             go_shed()
         elif choice == '2':
@@ -609,7 +667,10 @@ def main():
         elif choice == '6':
             sleep()
         elif choice == 'q':
+            print("\nThanks for playing!")
             sys.exit()
+        else:
+            msg("Command not recognized. Please choose a valid menu number.")
 
 
 if __name__ == "__main__":
