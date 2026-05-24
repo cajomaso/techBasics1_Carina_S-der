@@ -1,7 +1,32 @@
 import sys
 import time
 
-# c: I want to change that the player does not need the axt for harvesting. If there is harvest he can just harvest them. The Axt is only needed if the player wants to prematurely cut of the plants.
+# c: This shall be the final version
+# c: The Ascii-Art as well as the dictionaries are 99% written by me. (I added 1% of the dictionaries through prompts, since that is faster than adding them manually.
+# c: The functions are written by gemini. But I prompted gemini how they should be written. Since there was a lot of what I wanted to do with this game, this was way faster. Writing the functions by myself would have taken too long for a weeks assignment.
+# c: I read through the whole code and made sure that I understood what Gemini did. Through this I learn of more uses of code, example: enumerate().
+# c: If my game was a little smaller I would've written the code myself but my Imagination ran wild and I was too impatient :)
+# c: Impressed how well Gemini interpreted my prompts. But sometimes it needed nudges in the right direction.
+
+# c: First prompt: also given were my ascii art and the dictionaries, so gemini could work with given keys such as growth or use.
+# #functions
+# #inventory limited by 5 spaces
+# #garden is always shown but updated after changes
+# #starting point of garden is shed, ground, ground, ground, well. only ground can be changed by shoveling and then planting seed. Shoveling is pnly able through using the shovel in inventory.
+# #inventory in beginning only has money. Player needs to buy seeds in shop and get shovel and watering can from shed to progress.
+# #menu shown below garden. Options: Go to shed, go to garden, go to well, go to shop, look in inventory, go sleep. Enable a go back.
+# #Go to Shed: Menu now shows options of listing sheds item names. one can pickup those items or leave tools and seeds.
+# #sleep: if plant is watered growth goes up, picture presented goes up. Max is 3.
+# # go to garden: First only shoveling is possible, after shoveling planting, after planting watering.
+# #go to well: here you can fill watering can: use goes up to 4 again. watering is limited by use
+# #open shop
+# #buy
+# #list of seeds and how many are available as well as price
+# #sell
+# #list of your harvest, how many you can sell and for what price
+# # go to inventory: shows what is in your inventory
+
+# more prompts below the game
 
 # --- Your exact ASCII Art definitions ---
 shed = ('''
@@ -556,33 +581,31 @@ def go_garden():
                 elif plot.get("needs_recovery") or plot["growth"] < 3:
                     msg("The plant isn't ready to harvest yet.")
                 else:
+                    # HEARTH ACTION: Cleaned out the axt check entirely here!
                     p_name = plot["name"]
                     yield_name = "apple" if p_name == "appletree" else "berry" if p_name == "berrybush" else "flower"
 
-                    if p_name == "appletree" and get_item(inventory, "axt")["count"] <= 0:
-                        msg("Need an axt to harvest/cut down trees!")
-                    else:
-                        yield_amount = plot["fruit"]
-                        get_item(inventory, yield_name)["count"] += yield_amount
-                        plot["times_harvested"] += 1
+                    yield_amount = plot["fruit"]
+                    get_item(inventory, yield_name)["count"] += yield_amount
+                    plot["times_harvested"] += 1
 
-                        if p_name == "flowerseed":
-                            garden_plots[idx] = None
-                            msg(f"Harvested {yield_amount} fresh {yield_name}(s)! The flower is spent.")
-                        elif p_name == "berrybush" and plot["times_harvested"] >= 3:
-                            garden_plots[idx] = None
-                            msg(f"Harvested {yield_amount} fresh {yield_name}(s)! The berrybush reached its final cycle and died.")
-                        elif p_name == "appletree" and plot["times_harvested"] >= 5:
-                            garden_plots[idx] = None
-                            msg(f"Harvested {yield_amount} fresh {yield_name}(s)! The appletree reached its final cycle and died.")
-                        else:
-                            # Keep growth at 3 so the art doesn't change, but lock it behind recovery flag tracker!
-                            plot["needs_recovery"] = True
-                            plot["recovery_days_left"] = 2
-                            plot["days_at_max"] = 0
-                            plot["rotten"] = False
-                            msg(f"Harvested {yield_amount} fresh {yield_name}(s)! The plant is harvested but remains standing while it grows new fruit.")
+                    if p_name == "flowerseed":
+                        garden_plots[idx] = None
+                        msg(f"Harvested {yield_amount} fresh {yield_name}(s)! The flower is spent.")
+                    elif p_name == "berrybush" and plot["times_harvested"] >= 3:
+                        garden_plots[idx] = None
+                        msg(f"Harvested {yield_amount} fresh {yield_name}(s)! The berrybush reached its final cycle and died.")
+                    elif p_name == "appletree" and plot["times_harvested"] >= 5:
+                        garden_plots[idx] = None
+                        msg(f"Harvested {yield_amount} fresh {yield_name}(s)! The appletree reached its final cycle and died.")
+                    else:
+                        plot["needs_recovery"] = True
+                        plot["recovery_days_left"] = 2
+                        plot["days_at_max"] = 0
+                        plot["rotten"] = False
+                        msg(f"Harvested {yield_amount} fresh {yield_name}(s)! The plant is harvested but remains standing while it grows new fruit.")
             elif act == '5':
+                # AXE ACTION: Strictly kept for premature removal actions
                 if get_item(inventory, "axt")["count"] <= 0:
                     msg("You need an axt in your inventory to clear plants!")
                 elif not isinstance(plot, dict):
@@ -683,7 +706,6 @@ def sleep():
 
     for plot in garden_plots:
         if isinstance(plot, dict):
-            # Rotting logic only happens if ready and NOT currently recovering
             if plot["growth"] == 3 and not plot.get("needs_recovery"):
                 plot["days_at_max"] += 1
                 if plot["days_at_max"] >= 3:
@@ -693,7 +715,7 @@ def sleep():
                 if plot.get("needs_recovery"):
                     plot["recovery_days_left"] -= 1
                     if plot["recovery_days_left"] <= 0:
-                        plot["needs_recovery"] = False  # Ready to harvest again!
+                        plot["needs_recovery"] = False
                 elif plot["growth"] < 3:
                     plot["growth"] += 1
 
@@ -741,3 +763,21 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+#prompts
+ # Now I am missing:
+#A Welcome message that explains the player how he can play. For example: Choose your action by typing the number!
+#(A message that tells the player if something does not work) I correct myself after reading the code: They exist but they need a time puffer.
+#Longer showing time (of the sleeping message) for ALL messages
+#The use of the axt to get rid of planted plants so the player can plant new ones as a choice next to harvest
+#I think it would be fun if the harvest gets rotten (only on the tree /bush= after 3 days of sleeping without harvesting. If the harvest is rotten offer the option to pick them and throw them away.
+
+# c: The shed also shows items that are not there, I want to change that. But still give directions to drop an item. First ask for input if player wants to drop item, then let him choose. He cannot drop money.
+# c: only one apple is a bit weak, make it 3, also make it 5 berries. You can add these to the dictionaries as "fruit": 3 or "fruit": 5 and only make them available if growth == 3
+# c: do we still need a, b, c, d and e for printing? Just put a, b and c and add the s_lines and w_lines. Maybe similar to this: s_lines + a + b+ c+ w_lines
+
+# c: after choosing to pick up something at the shed you cannot go back. Add that option.
+ # c: when selling harvest give a message for invalid input if the input does not fit any list number.
+# c: the berrybush only dies after its been harvested three times. After it has been harvested it needs 2 sleeps to be able to harvest again. For this add to the dictionary "times_harvested": 0 when the count reaches 4 it dies. Do the same for apples but after 5 harvestings.
+# c: Also for every planted plant show "Days till harvest: "
+
