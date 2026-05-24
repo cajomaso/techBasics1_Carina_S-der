@@ -1,9 +1,7 @@
 import sys
 import time
 
-# c: when selling harvest give a message for invalid input if the input does not fit any list number.
-# c: the berrybush only dies after its been harvested three times. After it has been harvested it needs 2 sleeps to be able to harvest again. For this add to the dictionary "times_harvested": 0 when the count reaches 4 it dies. Do the same for apples but after 5 harvestings.
-# c: Also for every planted plant show "Days till harvest: "
+# c: I want to change that the player does not need the axt for harvesting. If there is harvest he can just harvest them. The Axt is only needed if the player wants to prematurely cut of the plants.
 
 # --- Your exact ASCII Art definitions ---
 shed = ('''
@@ -311,17 +309,23 @@ shed_storage = [
     {"name": "watering can", "type": "tool", "use": 4, "count": 1},
     {"name": "shovel", "type": "tool", "count": 1},
     {"name": "axt", "type": "tool", "count": 1},
-    {"name": "appletree", "type": "seed", "growth": 1, "watered": False, "count": 0, "price": 25, "fruit": 3},
-    {"name": "berrybush", "type": "seed", "growth": 1, "watered": False, "count": 0, "price": 15, "fruit": 5},
-    {"name": "flowerseed", "type": "seed", "growth": 1, "watered": False, "count": 0, "price": 5, "fruit": 1},
+    {"name": "appletree", "type": "seed", "growth": 1, "watered": False, "count": 0, "price": 25, "fruit": 3,
+     "times_harvested": 0},
+    {"name": "berrybush", "type": "seed", "growth": 1, "watered": False, "count": 0, "price": 15, "fruit": 5,
+     "times_harvested": 0},
+    {"name": "flowerseed", "type": "seed", "growth": 1, "watered": False, "count": 0, "price": 5, "fruit": 1,
+     "times_harvested": 0},
     {"name": "apple", "type": "harvest", "count": 0, "price": 5},
     {"name": "berry", "type": "harvest", "count": 0, "price": 1},
     {"name": "flower", "type": "harvest", "count": 0, "price": 8}]
 
 shop = [
-    {"name": "appletree", "type": "seed", "growth": 1, "watered": False, "count": 4, "price": 25, "fruit": 3},
-    {"name": "berrybush", "type": "seed", "growth": 1, "watered": False, "count": 4, "price": 15, "fruit": 5},
-    {"name": "flowerseed", "type": "seed", "growth": 1, "watered": False, "count": 10, "price": 5, "fruit": 1},
+    {"name": "appletree", "type": "seed", "growth": 1, "watered": False, "count": 4, "price": 25, "fruit": 3,
+     "times_harvested": 0},
+    {"name": "berrybush", "type": "seed", "growth": 1, "watered": False, "count": 4, "price": 15, "fruit": 5,
+     "times_harvested": 0},
+    {"name": "flowerseed", "type": "seed", "growth": 1, "watered": False, "count": 10, "price": 5, "fruit": 1,
+     "times_harvested": 0},
     {"name": "apple", "type": "harvest", "count": 0, "price": 5},
     {"name": "berry", "type": "harvest", "count": 0, "price": 1},
     {"name": "flower", "type": "harvest", "count": 0, "price": 8}]
@@ -330,9 +334,12 @@ inventory = [
     {"name": "watering can", "type": "tool", "use": 0, "count": 0},
     {"name": "shovel", "type": "tool", "count": 0},
     {"name": "axt", "type": "tool", "count": 0},
-    {"name": "appletree", "type": "seed", "growth": 1, "watered": False, "count": 0, "price": 25, "fruit": 3},
-    {"name": "berrybush", "type": "seed", "growth": 1, "watered": False, "count": 0, "price": 15, "fruit": 5},
-    {"name": "flowerseed", "type": "seed", "growth": 1, "watered": False, "count": 0, "price": 5, "fruit": 1},
+    {"name": "appletree", "type": "seed", "growth": 1, "watered": False, "count": 0, "price": 25, "fruit": 3,
+     "times_harvested": 0},
+    {"name": "berrybush", "type": "seed", "growth": 1, "watered": False, "count": 0, "price": 15, "fruit": 5,
+     "times_harvested": 0},
+    {"name": "flowerseed", "type": "seed", "growth": 1, "watered": False, "count": 0, "price": 5, "fruit": 1,
+     "times_harvested": 0},
     {"name": "apple", "type": "harvest", "count": 0, "price": 5},
     {"name": "berry", "type": "harvest", "count": 0, "price": 1},
     {"name": "flower", "type": "harvest", "count": 0, "price": 8},
@@ -464,9 +471,20 @@ def go_garden():
             if plot == "shoveled":
                 status = "Shoveled Dirt"
             elif isinstance(plot, dict):
-                condition = "ROTTEN!" if plot.get("rotten") else f"Growth: {plot['growth']}/3"
                 water_status = 'Watered' if plot['watered'] else 'Dry'
-                status = f"{plot['name'].capitalize()} ({condition}, {water_status})"
+
+                if plot.get("rotten"):
+                    condition = "ROTTEN!"
+                    days_str = ""
+                elif plot.get("needs_recovery"):
+                    condition = "Recovering"
+                    days_str = f" | Days till harvest: {plot['recovery_days_left']}"
+                else:
+                    condition = f"Growth: {plot['growth']}/3"
+                    days_left = 3 - plot["growth"]
+                    days_str = f" | Days till harvest: {days_left}" if days_left > 0 else " | Ready!"
+
+                status = f"{plot['name'].capitalize()} ({condition}, {water_status}){days_str}"
             print(f"{i + 1}. Plot {i + 1}: {status}")
         print("B. Back")
 
@@ -501,8 +519,17 @@ def go_garden():
                         if s_choice.isdigit() and 1 <= int(s_choice) <= len(seeds):
                             seed = seeds[int(s_choice) - 1]
                             seed["count"] -= 1
-                            garden_plots[idx] = {"name": seed["name"], "growth": 1, "watered": False, "days_at_max": 0,
-                                                 "rotten": False, "fruit": seed["fruit"]}
+                            garden_plots[idx] = {
+                                "name": seed["name"],
+                                "growth": 1,
+                                "watered": False,
+                                "days_at_max": 0,
+                                "rotten": False,
+                                "fruit": seed["fruit"],
+                                "times_harvested": 0,
+                                "needs_recovery": False,
+                                "recovery_days_left": 0
+                            }
                             msg(f"Planted {seed['name']}!")
             elif act == '3':
                 can = get_item(inventory, "watering can")
@@ -526,18 +553,35 @@ def go_garden():
                     if clean == 'y':
                         garden_plots[idx] = None
                         msg("Threw away the rotten crop. The ground is clear again.")
-                elif plot["growth"] < 3:
+                elif plot.get("needs_recovery") or plot["growth"] < 3:
                     msg("The plant isn't ready to harvest yet.")
                 else:
                     p_name = plot["name"]
                     yield_name = "apple" if p_name == "appletree" else "berry" if p_name == "berrybush" else "flower"
+
                     if p_name == "appletree" and get_item(inventory, "axt")["count"] <= 0:
                         msg("Need an axt to harvest/cut down trees!")
                     else:
                         yield_amount = plot["fruit"]
                         get_item(inventory, yield_name)["count"] += yield_amount
-                        garden_plots[idx] = None
-                        msg(f"Harvested {yield_amount} fresh {yield_name}(s)!")
+                        plot["times_harvested"] += 1
+
+                        if p_name == "flowerseed":
+                            garden_plots[idx] = None
+                            msg(f"Harvested {yield_amount} fresh {yield_name}(s)! The flower is spent.")
+                        elif p_name == "berrybush" and plot["times_harvested"] >= 3:
+                            garden_plots[idx] = None
+                            msg(f"Harvested {yield_amount} fresh {yield_name}(s)! The berrybush reached its final cycle and died.")
+                        elif p_name == "appletree" and plot["times_harvested"] >= 5:
+                            garden_plots[idx] = None
+                            msg(f"Harvested {yield_amount} fresh {yield_name}(s)! The appletree reached its final cycle and died.")
+                        else:
+                            # Keep growth at 3 so the art doesn't change, but lock it behind recovery flag tracker!
+                            plot["needs_recovery"] = True
+                            plot["recovery_days_left"] = 2
+                            plot["days_at_max"] = 0
+                            plot["rotten"] = False
+                            msg(f"Harvested {yield_amount} fresh {yield_name}(s)! The plant is harvested but remains standing while it grows new fruit.")
             elif act == '5':
                 if get_item(inventory, "axt")["count"] <= 0:
                     msg("You need an axt in your inventory to clear plants!")
@@ -591,23 +635,34 @@ def go_shop():
                     s_item["count"] -= 1
                     inv_item["count"] += 1
                     msg(f"Purchased 1 {s_item['name']}!")
+            else:
+                msg("Invalid seed item number chosen.")
         elif choice == '2':
             harvests = [h for h in inventory if h["type"] == "harvest" and h["count"] > 0]
             if not harvests:
-                msg("Nothing to sell.")
+                msg("Nothing to sell in your inventory.")
+                continue
+
+            for i, h in enumerate(harvests):
+                print(f"{i + 1}. {h['name'].capitalize()} x{h['count']} (${h['price']} each)")
+            print("B. Back")
+
+            idx = input("Sell number or 'B': ").strip().lower()
+            if idx == 'b': continue
+
+            if idx.isdigit() and 1 <= int(idx) <= len(harvests):
+                h_item = harvests[int(idx) - 1]
+                qty = input(f"Amount (Max {h_item['count']}): ").strip()
+                if qty.isdigit() and 1 <= int(qty) <= h_item["count"]:
+                    amt = int(qty)
+                    h_item["count"] -= amt
+                    earnings = amt * h_item["price"]
+                    wallet["count"] += earnings
+                    msg(f"Sold {amt} {h_item['name']}(s) for {earnings} Money!")
+                else:
+                    msg("Invalid quantity amount specified.")
             else:
-                for i, h in enumerate(harvests):
-                    print(f"{i + 1}. {h['name'].capitalize()} x{h['count']} (${h['price']} each)")
-                idx = input("Sell number: ").strip()
-                if idx.isdigit() and 1 <= int(idx) <= len(harvests):
-                    h_item = harvests[int(idx) - 1]
-                    qty = input(f"Amount (Max {h_item['count']}): ").strip()
-                    if qty.isdigit() and 1 <= int(qty) <= h_item["count"]:
-                        amt = int(qty)
-                        h_item["count"] -= amt
-                        earnings = amt * h_item["price"]
-                        wallet["count"] += earnings
-                        msg(f"Sold {amt} {h_item['name']}(s) for {earnings} Money!")
+                msg("Invalid input. That number does not fit any listed item.")
 
 
 def look_inventory():
@@ -628,14 +683,20 @@ def sleep():
 
     for plot in garden_plots:
         if isinstance(plot, dict):
-            if plot["growth"] == 3:
+            # Rotting logic only happens if ready and NOT currently recovering
+            if plot["growth"] == 3 and not plot.get("needs_recovery"):
                 plot["days_at_max"] += 1
                 if plot["days_at_max"] >= 3:
                     plot["rotten"] = True
 
             if plot["watered"]:
-                if plot["growth"] < 3:
+                if plot.get("needs_recovery"):
+                    plot["recovery_days_left"] -= 1
+                    if plot["recovery_days_left"] <= 0:
+                        plot["needs_recovery"] = False  # Ready to harvest again!
+                elif plot["growth"] < 3:
                     plot["growth"] += 1
+
                 plot["watered"] = False
 
     msg("Good morning! A brand new day has arrived.")
