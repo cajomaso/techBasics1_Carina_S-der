@@ -604,14 +604,16 @@ def go_garden():
 
 def go_well():
     can = get_item(inventory, "watering can")
-    if can["count"] <= 0:
-        msg("You aren't carrying a watering can.")
-    else:
-        print(f"\nCan usage: [{can['use']}/4]")
-        if input("Refill can? (y/n): ").strip().lower() == 'y':
-            can["use"] = 4
-            msg("Refilled watering can!")
-
+    try:
+        if can["count"] <= 0:
+            msg("You aren't carrying a watering can.")
+        else:
+            print(f"\nCan usage: [{can['use']}/4]")
+            if input("Refill can? (y/n): ").strip().lower() == 'y':
+                can["use"] = 4
+                msg("Refilled watering can!")
+    except:
+        print('Invalid choice.')
 
 def go_shop():
     wallet = get_item(inventory, "money")
@@ -761,10 +763,17 @@ def main():
 
         global Apple, Berry, Flower
 
-        # For checking if function works copy: True for fast check
-        Apple = True
-        Berry = True
-        Flower = Truebhjbp
+        DEBUG = True
+        if DEBUG:
+            Apple = True
+            Berry = True
+            Flower = True
+
+        else:
+            Apple = False
+            Berry = False
+            Flower = False
+
 
         for p in garden_plots:
 
