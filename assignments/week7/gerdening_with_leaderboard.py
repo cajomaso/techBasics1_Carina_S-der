@@ -1,17 +1,10 @@
 import sys
 import time
 import csv
+import os
+from datetime import datetime  # Added for timestamps
 
-#For testing finish sequence
-#Apple == True
-#Berry == True
-#Flower == True
 
-Apple = False
-Berry = False
-Flower = False
-
-#timetesting
 shed = ('''
 .oOo.oOo.oOo.oOo.oOo.oOo.oOo. \n
                               \n
@@ -312,7 +305,7 @@ flower3 = ('''
 ___________/ⁿⁿⁿⁿⁿⁿ|_____________''')
 flower3_lines = flower3.split('\n')
 
-# --- Game Lists & Dicts ---
+
 shed_storage = [
     {"name": "watering can", "type": "tool", "use": 4, "count": 1},
     {"name": "shovel", "type": "tool", "count": 1},
@@ -403,6 +396,7 @@ def show_garden():
         print("".join(combined_row))
     print("=" * 150)
     print(f" Wallet: {get_item(inventory, 'money')['count']} Money | Inventory Spaces: {get_inv_count()}/5")
+
 
 # --- Location Routines ---
 def go_shed():
@@ -563,7 +557,6 @@ def go_garden():
                 elif plot.get("needs_recovery") or plot["growth"] < 3:
                     msg("The plant isn't ready to harvest yet.")
                 else:
-                    # HEARTH ACTION: Cleaned out the axt check entirely here!
                     p_name = plot["name"]
                     yield_name = "apple" if p_name == "appletree" else "berry" if p_name == "berrybush" else "flower"
 
@@ -587,7 +580,6 @@ def go_garden():
                         plot["rotten"] = False
                         msg(f"Harvested {yield_amount} fresh {yield_name}(s)! The plant is harvested but remains standing while it grows new fruit.")
             elif act == '5':
-                # AXE ACTION: Strictly kept for premature removal actions
                 if get_item(inventory, "axt")["count"] <= 0:
                     msg("You need an axt in your inventory to clear plants!")
                 elif not isinstance(plot, dict):
@@ -614,6 +606,7 @@ def go_well():
                 msg("Refilled watering can!")
     except:
         print('Invalid choice.')
+
 
 def go_shop():
     wallet = get_item(inventory, "money")
@@ -688,7 +681,6 @@ def sleep():
     print("\n*Yawn* Going to bed... ")
     msg("Sleeping... Zzz...", delay=2.5)
 
-
     for plot in garden_plots:
         if isinstance(plot, dict):
             if plot["growth"] == 3 and not plot.get("needs_recovery"):
@@ -709,16 +701,11 @@ def sleep():
     msg("Good morning! A brand new day has arrived.")
 
 
-
-
-
 # --- Main Engine Loop ---
 def main():
-
-
     print("\n" + "=" * 60)
     print("      WELCOME TO MINI TEXT-GARDENER!")
-    username = input("What is your username?")
+    username = input("What is your username? ")
     print("=" * 60)
     print(fr"Hey {username}, how to play: ")
     print("- Interact with your world by typing the listed option number.")
@@ -733,13 +720,6 @@ def main():
     starting_time = time.time()
 
     while True:
-        # my first attempt to give the game a finish scenario
-        #if appletree3 and berrybush3 and flower3 in garden_plots:
-        #    ending_time = time.time() - starting_time
-        #    print(fr "congrats! you planted all the seeds there are in this game! It took you {ending_time} seconds.")
-
-
-
         show_garden()
         print("\nMAIN MENU: 1: Shed | 2: Garden | 3: Well | 4: Shop | 5: Inventory | 6: Sleep | Q: Quit")
         choice = input("Where do you want to go?: ").strip().lower()
@@ -763,31 +743,29 @@ def main():
 
         global Apple, Berry, Flower
 
-        DEBUG = True
+        DEBUG = False #you need to move in the menu once for the shortcut to work. Example:got to garden and then back
+
         if DEBUG:
             Apple = True
             Berry = True
             Flower = True
-
         else:
             Apple = False
             Berry = False
             Flower = False
 
-
         for p in garden_plots:
-
             if isinstance(p, dict) and p["name"] == "appletree" and p["growth"] == 3:
                 Apple = True
-
             elif isinstance(p, dict) and p["name"] == "berrybush" and p["growth"] == 3:
                 Berry = True
-
             elif isinstance(p, dict) and p["name"] == "flowerseed" and p["growth"] == 3:
                 Flower = True
 
         if Apple and Berry and Flower:
             ending_time = time.time() - starting_time
+            current_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Generated timestamp
+
             print("-" * 60)
             print(fr"Congrats {username}, you grew one of every seed there is!")
             print(fr"It took you {ending_time:.2f} seconds to complete your journey.")
@@ -795,37 +773,40 @@ def main():
 
             filename = "leaderboard.csv"
             scores = []
-            import os
 
+            # Read historical scores
             if os.path.exists(filename):
                 with open(filename, mode='r', newline='') as f:
                     reader = csv.reader(f)
-                    next(reader, None)
+                    next(reader, None)  # Skip old header row
                     for row in reader:
                         if row:
-                            scores.append((row[1], float(row[2])))
+                            # Grabbing Username (col 1), Time (col 2), and old Timestamp if it exists (col 3)
+                            old_time = float(row[2])
+                            old_ts = row[3] if len(row) > 3 else "N/A"
+                            scores.append((row[1], old_time, old_ts))
 
-            scores.append((username, round(ending_time, 2)))
+            # Add newest completion
+            scores.append((username, round(ending_time, 2), current_timestamp))
 
-            #from ai
+            # Sort records ascending by completion speed (element index 1)
             scores.sort(key=lambda x: x[1])
 
-            # 4. Datei neu schreiben und Ränge updaten
+            # Re-write file incorporating rank assignment and timestamps
             with open(filename, mode='w', newline='') as f:
                 writer = csv.writer(f)
-                writer.writerow(["Rang", "Username", "Zeit (s)"])  # Header
+                writer.writerow(["Rang", "Username", "Zeit (s)", "Timestamp"])  # Updated Header
 
                 print("\n=== CURRENT LEADERBOARD ===")
-                print(f"{'Rang':<6}{'Username':<15}{'Time (s)':<10}")
-                print("-" * 31)
+                print(f"{'Rang':<6}{'Username':<15}{'Time (s)':<12}{'Date/Time':<20}")
+                print("-" * 53)
 
-                for rank, (name, score_time) in enumerate(scores, start=1):
-                    writer.writerow([rank, name, score_time])
-                    print(f"{rank:<6}{name:<15}{score_time:<10.2f}")
+                for rank, (name, score_time, ts) in enumerate(scores, start=1):
+                    writer.writerow([rank, name, score_time, ts])
+                    print(f"{rank:<6}{name:<15}{score_time:<12.2f}{ts:<20}")
 
             print("=" * 60)
             break
-
 
 
 if __name__ == "__main__":
